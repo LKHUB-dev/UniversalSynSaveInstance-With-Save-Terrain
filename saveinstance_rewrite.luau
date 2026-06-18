@@ -31,49 +31,15 @@ local function ArrayToDict(t, hydridMode, valueOverride, typeStrict)
 	return tmp
 end
 
-local global_container
-do
-	local filename = "UniversalMethodFinder"
-
-	local finder
-	finder, global_container = loadstring(
-/UniversalMethodFinder.luau
-		game:HttpGet("https://raw.githubusercontent.com/LKHUB-dev/UniversalSynSaveInstance-With-Save-Terrain/main/" .. filename .. ".luau", true),
-		filename
-	)()
-
-	finder({
-		-- readbinarystring = 'string.find(...,"bin",nil,true)', -- ! Could match some unwanted stuff (getbinaryindex)
-		-- request = 'string.find(...,"request",nil,true) and not string.find(...,"internal",nil,true)',
-		base64encode = 'local a={...}local b=a[1]local function c(a,b)return string.find(a,b,nil,true)end;return c(b,"encode")and(c(b,"base64")or c(string.lower(tostring(a[2])),"base64"))',
-		-- cloneref = 'string.find(...,"clone",nil,true) and string.find(...,"ref",nil,true)',
-		-- decompile = '(string.find(...,"decomp",nil,true) and string.sub(...,#...) ~= "s")',
-		gethiddenproperty = 'string.find(...,"get",nil,true) and string.find(...,"h",nil,true) and string.find(...,"prop",nil,true) and string.sub(...,#...) ~= "s"',
-		gethui = 'string.find(...,"get",nil,true) and string.find(...,"h",nil,true) and string.find(...,"ui",nil,true)',
-		-- getcon = 'string.find(...,"get",nil,true) and (string.find(...,"conn",nil,true) or string.find(...,"sig",nil,true)) and string.sub(...,#(...))=="s"',
-		getnilinstances = 'string.find(...,"nil",nil,true) and string.find(...,"get",nil,true) and string.sub(...,#...) == "s"', -- ! Could match some unwanted stuff
-		getscriptbytecode = 'string.find(...,"get",nil,true) and string.find(...,"script",nil,true) and string.find(...,"bytecode",nil,true)', --  or string.find(...,"dump",nil,true) and string.find(...,"string",nil,true) due to Fluxus (dumpstring returns a function)
-		-- hash = 'local a={...}local b=a[1]local function c(a,b)return string.find(a,b,nil,true)end;return c(b,"hash")and c(string.lower(tostring(a[2])),"crypt")',
-		protectgui = 'string.find(...,"protect",nil,true) and string.find(...,"ui",nil,true) and not string.find(...,"un",nil,true)',
-		setthreadidentity = 'string.find(...,"identity",nil,true) and string.find(...,"set",nil,true)',
-	}, true, 10)
-end
-
 local identify_executor = identifyexecutor or getexecutorname or whatexecutor
 
 local EXECUTOR_NAME = identify_executor and identify_executor() or ""
-
--- local cloneref = global_container.cloneref
-local gethiddenproperty = global_container.gethiddenproperty
 
 -- These should be universal enough
 local appendfile = appendfile
 local isfile = isfile
 local readfile = readfile
 local writefile = writefile
-
-local getscriptbytecode = global_container.getscriptbytecode -- * A lot of assumptions are made based on whether this function is defined or not. So in certain edge cases, like if the executor defines "decompile" or "getscripthash" function yet doesn't define this function there might be loss of functionality of the saveinstance. Although that would be very rare and weird
-local base64encode = global_container.base64encode
 
 local service = setmetatable({}, {
 	__index = function(self, serviceName)
@@ -2242,7 +2208,6 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 	end
 	GLOBAL_ENV.USSI = true
 	do
-		local setthreadidentity = global_container.setthreadidentity
 		if setthreadidentity then
 			pcall(setthreadidentity, 8) -- ? Arceus X Fix
 		end
@@ -3611,7 +3576,7 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 		SaveNotCreatableWillBeEnabled = SaveNotCreatable
 			or (IsolateLocalPlayer or IsolateLocalPlayerCharacter) and IsolateLocalPlayer
 			or IsolatePlayers
-			or NilInstances and global_container.getnilinstances -- ! Make sure this accurately reflects everything below
+			or NilInstances and getnilinstances -- ! Make sure this accurately reflects everything below
 
 		save_hierarchy(ToSaveList)
 
@@ -3641,12 +3606,12 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 			save_extra("Players", service.Players) -- no reason to saveprops as you can see the props on the original instance
 		end
 
-		if NilInstances and global_container.getnilinstances then
+		if NilInstances and getnilinstances then
 			local nil_instances, nil_instances_size = {}, 1
 
 			local NilInstancesFixes = OPTIONS.NilInstancesFixes
 
-			for _, instance in global_container.getnilinstances() do
+			for _, instance in getnilinstances() do
 				if instance == game then
 					instance = nil
 					-- break
@@ -4000,13 +3965,13 @@ local function synsaveinstance(CustomOptions, CustomOptions2)
 			return table.concat(randomarray)
 		end
 
-		if global_container.gethui then
+		if gethui then
 			StatusGui.Name = randomString()
-			StatusGui.Parent = global_container.gethui()
+			StatusGui.Parent = gethui()
 		else
-			if global_container.protectgui then
+			if protectgui then
 				StatusGui.Name = randomString()
-				global_container.protectgui(StatusGui)
+				protectgui(StatusGui)
 				StatusGui.Parent = game:GetService("CoreGui")
 			else
 				local RobloxGui = game:GetService("CoreGui"):FindFirstChild("RobloxGui")
